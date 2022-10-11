@@ -2729,6 +2729,10 @@ public:
     }
   }
 
+  void install_message_hook(std::function<bool(std::string const &)> hook) {
+    message_hook = std::move(hook);
+  }
+
   void resolve(const std::string &seq, int status, const std::string &result) {
     // NOLINTNEXTLINE(modernize-avoid-bind): Lambda with move requires C++14
     dispatch(std::bind(
@@ -2766,6 +2770,10 @@ if (status === 0) {
 
 private:
   void on_message(const std::string &msg) {
+    if (message_hook) {
+      if (!message_hook(msg))
+        return;
+    }
     auto seq = detail::json_parse(msg, "id", 0);
     auto name = detail::json_parse(msg, "method", 0);
     auto args = detail::json_parse(msg, "params", 0);
@@ -2778,6 +2786,7 @@ private:
   }
 
   std::map<std::string, binding_ctx_t> bindings;
+  std::function<bool(std::string const &)> message_hook;
 };
 } // namespace webview
 
