@@ -634,6 +634,7 @@ public:
   }
   virtual ~gtk_webkit_engine() = default;
   void *window() { return (void *)m_window; }
+  void *webview() { return (void *)m_webview; }
   void run() { gtk_main(); }
   void terminate() { gtk_main_quit(); }
   void dispatch(std::function<void()> f) {
@@ -2441,6 +2442,7 @@ public:
     }
   }
   void *window() { return (void *)m_window; }
+  void *webview() { return (void *)m_webview; }
   void terminate() { PostQuitMessage(0); }
   void dispatch(dispatch_fn_t f) {
     PostMessageW(m_message_window, WM_APP, 0, (LPARAM) new dispatch_fn_t(f));
