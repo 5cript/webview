@@ -1,5 +1,13 @@
 add_library(webview INTERFACE)
 
+if (UNIX)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(
+        webkit2 REQUIRED webkit2gtk-4.0 webkit2gtk-4.1 webkit2gtk
+        IMPORTED_TARGET
+    )
+endif()
+
 add_custom_target(
     webview-prep 
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include" 
