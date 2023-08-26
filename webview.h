@@ -583,7 +583,7 @@ namespace detail {
 
 class gtk_webkit_engine {
 public:
-  gtk_webkit_engine(bool debug, void *window)
+  gtk_webkit_engine(bool debug, void *window, void *)
       : m_window(static_cast<GtkWidget *>(window)) {
     if (!m_window) {
       if (gtk_init_check(nullptr, nullptr) == FALSE) {
@@ -829,7 +829,7 @@ inline id operator"" _str(const char *s, std::size_t) {
 
 class cocoa_wkwebview_engine {
 public:
-  cocoa_wkwebview_engine(bool debug, void *window)
+  cocoa_wkwebview_engine(bool debug, void *window, void*)
       : m_debug{debug}, m_window{static_cast<id>(window)}, m_owns_window{
                                                                !window} {
     auto app = get_shared_application();
@@ -2249,7 +2249,7 @@ private:
 
 class win32_edge_engine {
 public:
-  win32_edge_engine(bool debug, void *window) {
+  win32_edge_engine(bool debug, void *window, void *options) {
     if (!is_webview2_available()) {
       return;
     }
@@ -2409,7 +2409,7 @@ public:
     auto cb =
         std::bind(&win32_edge_engine::on_message, this, std::placeholders::_1);
 
-    embed(m_window, debug, cb);
+    embed(m_window, debug, cb, options);
     resize_widget();
     m_controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
   }
@@ -2500,7 +2500,7 @@ public:
   }
 
 private:
-  bool embed(HWND wnd, bool debug, msg_cb_t cb) {
+  bool embed(HWND wnd, bool debug, msg_cb_t cb, void *options) {
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
     flag.test_and_set();
 
@@ -2532,7 +2532,8 @@ private:
 
     m_com_handler->set_attempt_handler([&] {
       return m_webview2_loader.create_environment_with_options(
-          nullptr, userDataFolder, nullptr, m_com_handler);
+          nullptr, userDataFolder, (ICoreWebView2EnvironmentOptions *)options,
+          m_com_handler);
     });
     m_com_handler->try_create_environment();
 
@@ -2661,8 +2662,8 @@ namespace webview {
 
 class webview : public browser_engine {
 public:
-  webview(bool debug = false, void *wnd = nullptr)
-      : browser_engine(debug, wnd) {}
+  webview(bool debug = false, void *wnd = nullptr, void *options = nullptr)
+      : browser_engine(debug, wnd, options) {}
 
   void navigate(const std::string &url) {
     if (url.empty()) {
