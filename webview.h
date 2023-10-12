@@ -829,9 +829,9 @@ inline id operator"" _str(const char *s, std::size_t) {
 
 class cocoa_wkwebview_engine {
 public:
-  cocoa_wkwebview_engine(bool debug, void *window, void*)
-      : m_debug{debug}, m_window{static_cast<id>(window)}, m_owns_window{
-                                                               !window} {
+  cocoa_wkwebview_engine(bool debug, void *window, void *)
+      : m_debug{debug}, m_window{static_cast<id>(window)},
+        m_owns_window{!window} {
     auto app = get_shared_application();
     // See comments related to application lifecycle in create_app_delegate().
     if (!m_owns_window) {
@@ -857,7 +857,6 @@ public:
     }
   }
   virtual ~cocoa_wkwebview_engine() = default;
-  void *window() { return (void *)m_window; }
   void terminate() { stop_run_loop(); }
   void run() {
     auto app = get_shared_application();
@@ -938,6 +937,9 @@ public:
                                             js.c_str()),
                          nullptr);
   }
+
+  void *window() { return static_cast<void *>(m_window); }
+  void *webview() { return static_cast<void *>(m_window); }
 
 private:
   virtual void on_message(const std::string &msg) = 0;
