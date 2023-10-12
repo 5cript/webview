@@ -1,6 +1,7 @@
 add_library(webview INTERFACE)
 
-if (UNIX)
+if (APPLE)
+elseif (UNIX)
     find_package(PkgConfig REQUIRED)
     pkg_search_module(
         webkit2 REQUIRED webkit2gtk-4.0 webkit2gtk-4.1 webkit2gtk
@@ -9,8 +10,8 @@ if (UNIX)
 endif()
 
 add_custom_target(
-    webview-prep 
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include" 
+    webview-prep
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_LIST_DIR}/webview.h" "${CMAKE_BINARY_DIR}/include/webview.h"
     COMMAND_EXPAND_LISTS
 )
@@ -35,6 +36,13 @@ target_link_libraries(
             WebView2Loader.lib
         >
 )
+target_link_libraries(
+    webview
+    INTERFACE
+        $<$<PLATFORM_ID:Darwin>:
+            "-framework WebKit"
+        >
+)
 
 if (WIN32)
     include(FetchContent)
@@ -57,8 +65,8 @@ if (WIN32)
 
     target_include_directories(webview INTERFACE "${CMAKE_BINARY_DIR}/_deps/webview_binary-src/build/native/include")
     target_link_directories(
-        webview 
-        INTERFACE 
+        webview
+        INTERFACE
             "${CMAKE_BINARY_DIR}/_deps/webview_binary-src/build/native/${WEBVIEW_DLL_SUBDIRECTORY}"
             "${CMAKE_BINARY_DIR}/lib"
     )
