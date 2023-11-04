@@ -829,9 +829,14 @@ inline id operator"" _str(const char *s, std::size_t) {
 
 class cocoa_wkwebview_engine {
 public:
-  cocoa_wkwebview_engine(bool debug, void *window, void *)
+  cocoa_wkwebview_engine(bool debug, void *window, void *wkWebViewConfiguration)
       : m_debug{debug}, m_window{static_cast<id>(window)},
-        m_owns_window{!window} {
+        m_owns_window{!window}, m_config{[wkWebViewConfiguration]() {
+          if (wkWebViewConfiguration) {
+            return static_cast<id>(wkWebViewConfiguration);
+          }
+          return objc::msg_send<id>("WKWebViewConfiguration"_cls, "new"_sel);
+        }()} {
     auto app = get_shared_application();
     // See comments related to application lifecycle in create_app_delegate().
     if (!m_owns_window) {
@@ -1112,15 +1117,15 @@ private:
     }
 
     // Webview
-    auto config = objc::msg_send<id>("WKWebViewConfiguration"_cls, "new"_sel);
-    m_manager = objc::msg_send<id>(config, "userContentController"_sel);
+    m_manager = objc::msg_send<id>(m_config, "userContentController"_sel);
     m_webview = objc::msg_send<id>("WKWebView"_cls, "alloc"_sel);
 
     if (m_debug) {
       // Equivalent Obj-C:
       // [[config preferences] setValue:@YES forKey:@"developerExtrasEnabled"];
       objc::msg_send<id>(
-          objc::msg_send<id>(config, "preferences"_sel), "setValue:forKey:"_sel,
+          objc::msg_send<id>(m_config, "preferences"_sel),
+          "setValue:forKey:"_sel,
           objc::msg_send<id>("NSNumber"_cls, "numberWithBool:"_sel, YES),
           "developerExtrasEnabled"_str);
     }
@@ -1128,27 +1133,27 @@ private:
     // Equivalent Obj-C:
     // [[config preferences] setValue:@YES forKey:@"fullScreenEnabled"];
     objc::msg_send<id>(
-        objc::msg_send<id>(config, "preferences"_sel), "setValue:forKey:"_sel,
+        objc::msg_send<id>(m_config, "preferences"_sel), "setValue:forKey:"_sel,
         objc::msg_send<id>("NSNumber"_cls, "numberWithBool:"_sel, YES),
         "fullScreenEnabled"_str);
 
     // Equivalent Obj-C:
     // [[config preferences] setValue:@YES forKey:@"javaScriptCanAccessClipboard"];
     objc::msg_send<id>(
-        objc::msg_send<id>(config, "preferences"_sel), "setValue:forKey:"_sel,
+        objc::msg_send<id>(m_config, "preferences"_sel), "setValue:forKey:"_sel,
         objc::msg_send<id>("NSNumber"_cls, "numberWithBool:"_sel, YES),
         "javaScriptCanAccessClipboard"_str);
 
     // Equivalent Obj-C:
     // [[config preferences] setValue:@YES forKey:@"DOMPasteAllowed"];
     objc::msg_send<id>(
-        objc::msg_send<id>(config, "preferences"_sel), "setValue:forKey:"_sel,
+        objc::msg_send<id>(m_config, "preferences"_sel), "setValue:forKey:"_sel,
         objc::msg_send<id>("NSNumber"_cls, "numberWithBool:"_sel, YES),
         "DOMPasteAllowed"_str);
 
     auto ui_delegate = create_webkit_ui_delegate();
     objc::msg_send<void>(m_webview, "initWithFrame:configuration:"_sel,
-                         CGRectMake(0, 0, 0, 0), config);
+                         CGRectMake(0, 0, 0, 0), m_config);
     objc::msg_send<void>(m_webview, "setUIDelegate:"_sel, ui_delegate);
 
     if (m_debug) {
@@ -1216,6 +1221,7 @@ private:
   id m_webview;
   id m_manager;
   bool m_owns_window;
+  id m_config;
 };
 
 } // namespace detail
