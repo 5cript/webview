@@ -45,7 +45,8 @@ namespace detail {
 
 class engine_base {
 public:
-  engine_base(bool owns_window) : m_owns_window{owns_window} {}
+  engine_base(bool owns_window, std::function<void *(void *)> on_configure)
+      : m_owns_window{owns_window}, m_on_configure{std::move(on_configure)} {}
 
   virtual ~engine_base() = default;
 
@@ -132,6 +133,7 @@ window.__webview__.onUnbind(" +
   result<void *> window() { return window_impl(); }
   result<void *> widget() { return widget_impl(); }
   result<void *> browser_controller() { return browser_controller_impl(); }
+  result<void *> webview() { return webview_impl(); }
   noresult run() { return run_impl(); }
   noresult terminate() { return terminate_impl(); }
   noresult dispatch(std::function<void()> f) { return dispatch_impl(f); }
@@ -157,6 +159,7 @@ protected:
   virtual result<void *> window_impl() = 0;
   virtual result<void *> widget_impl() = 0;
   virtual result<void *> browser_controller_impl() = 0;
+  virtual result<void *> webview_impl() = 0;
   virtual noresult run_impl() = 0;
   virtual noresult terminate_impl() = 0;
   virtual noresult dispatch_impl(std::function<void()> f) = 0;
@@ -348,6 +351,8 @@ protected:
 
   bool owns_window() const { return m_owns_window; }
 
+  void *on_configure(void *config) { return m_on_configure(config); }
+
 private:
   static std::atomic_uint &window_ref_count() {
     static std::atomic_uint ref_count{0};
@@ -371,6 +376,7 @@ private:
   bool m_is_init_script_added{};
   bool m_is_size_set{};
   bool m_owns_window{};
+  std::function<void *(void *)> m_on_configure;
   static const int m_initial_width = 640;
   static const int m_initial_height = 480;
 };
