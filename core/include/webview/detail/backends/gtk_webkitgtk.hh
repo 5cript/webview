@@ -99,7 +99,9 @@ private:
 
 class gtk_webkit_engine : public engine_base {
 public:
-  gtk_webkit_engine(bool debug, void *window) : engine_base{!window} {
+  gtk_webkit_engine(bool debug, void *window,
+                    std::function<void *(void *)> on_configure)
+      : engine_base{!window, std::move(on_configure)} {
     window_init(window);
     window_settings(debug);
     dispatch_size_default();
@@ -140,6 +142,12 @@ protected:
   }
 
   result<void *> widget_impl() override {
+    if (m_webview) {
+      return m_webview;
+    }
+    return error_info{WEBVIEW_ERROR_INVALID_STATE};
+  }
+  result<void *> webview_impl() override {
     if (m_webview) {
       return m_webview;
     }

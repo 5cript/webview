@@ -311,7 +311,9 @@ private:
 
 class win32_edge_engine : public engine_base {
 public:
-  win32_edge_engine(bool debug, void *window) : engine_base{!window} {
+  win32_edge_engine(bool debug, void *window,
+                    std::function<void *(void *)> on_configure)
+      : engine_base{!window, std::move(on_configure)} {
     window_init(window);
     window_settings(debug);
     dispatch_size_default();
@@ -389,6 +391,12 @@ protected:
   result<void *> widget_impl() override {
     if (m_widget) {
       return m_widget;
+    }
+    return error_info{WEBVIEW_ERROR_INVALID_STATE};
+  }
+  result<void *> webview_impl() override {
+    if (m_webview) {
+      return m_webview;
     }
     return error_info{WEBVIEW_ERROR_INVALID_STATE};
   }
@@ -756,7 +764,9 @@ private:
 
     m_com_handler->set_attempt_handler([&] {
       return m_webview2_loader.create_environment_with_options(
-          nullptr, userDataFolder, nullptr, m_com_handler);
+          nullptr, userDataFolder,
+          static_cast<ICoreWebView2EnvironmentOptions *>(on_configure(nullptr)),
+          m_com_handler);
     });
     m_com_handler->try_create_environment();
 
