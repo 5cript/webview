@@ -154,6 +154,10 @@ window.__webview__.onUnbind(" +
 
   noresult eval(const std::string &js) { return eval_impl(js); }
 
+  void install_message_hook(std::function<bool(std::string const &)> hook) {
+    m_message_hook = std::move(hook);
+  }
+
 protected:
   virtual noresult navigate_impl(const std::string &url) = 0;
   virtual result<void *> window_impl() = 0;
@@ -305,6 +309,9 @@ protected:
   }
 
   virtual void on_message(const std::string &msg) {
+    if (m_message_hook && !m_message_hook(msg)) {
+      return;
+    }
     auto id = json_parse(msg, "id", 0);
     auto name = json_parse(msg, "method", 0);
     auto args = json_parse(msg, "params", 0);
@@ -377,6 +384,7 @@ private:
   bool m_is_size_set{};
   bool m_owns_window{};
   std::function<void *(void *)> m_on_configure;
+  std::function<bool(std::string const &)> m_message_hook;
   static const int m_initial_width = 640;
   static const int m_initial_height = 480;
 };
