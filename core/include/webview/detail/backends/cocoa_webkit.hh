@@ -88,9 +88,11 @@ using namespace webkit;
 
 class cocoa_wkwebview_engine : public engine_base {
 public:
-  cocoa_wkwebview_engine(bool debug, void *window)
-      : engine_base{!window}, m_app{NSApplication_get_sharedApplication()} {
-    window_init(window);
+  cocoa_wkwebview_engine(bool debug, void *window,
+                         std::function<void *(void *)> on_configure)
+      : engine_base{!window, std::move(on_configure)},
+        m_app{NSApplication_get_sharedApplication()} {
+    window_init(window, wkWebViewConfiguration);
     window_settings(debug);
     dispatch_size_default();
   }
@@ -161,6 +163,13 @@ protected:
   }
 
   result<void *> browser_controller_impl() override {
+    if (m_webview) {
+      return m_webview;
+    }
+    return error_info{WEBVIEW_ERROR_INVALID_STATE};
+  }
+
+  result<void *> webview_impl() override {
     if (m_webview) {
       return m_webview;
     }
@@ -448,6 +457,7 @@ private:
     objc::autoreleasepool arp;
 
     auto config{objc::autorelease(WKWebViewConfiguration_new())};
+    on_configure(config);
 
     m_manager = WKWebViewConfiguration_get_userContentController(config);
 
@@ -545,7 +555,7 @@ private:
     }
     return temp;
   }
-  void window_init(void *window) {
+  void window_init(void *window, void *wkWebViewConfiguration) {
     objc::autoreleasepool arp;
 
     m_window = static_cast<id>(window);
